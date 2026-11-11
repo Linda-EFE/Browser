@@ -76,7 +76,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
   <h1>Browser-App</h1>
   <button id="back" title="Zurück" aria-label="Zurück">◀</button>
   <button id="reload" title="Neu laden" aria-label="Neu laden">⟳</button>
-  <input id="url" type="url" placeholder="Webseite-Link, z.B. https://example.com" value="https://example.com" aria-label="Link">
+  <input id="url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Webseite eingeben, z.B. karlsruhe.de" value="karlsruhe.de" aria-label="Webseite">
   <button id="go" class="primary">Laden</button>
 </header>
 
@@ -248,7 +248,7 @@ let loadResolve = null;
 let navCount = 0, lastNav = Promise.resolve(true);
 function loadUrl(input, opts) { navCount++; lastNav = loadUrlInner(input, opts); return lastNav; }
 async function loadUrlInner(input, { push = true } = {}) {
-  const url = normalizeUrl(input);
+  let url = normalizeUrl(input);
   if (!url) { status("Ungültiger Link. Bitte mit http:// oder https:// eingeben.", "err"); return false; }
   $("url").value = url;
   status("Lade " + url + " …");
@@ -256,8 +256,18 @@ async function loadUrlInner(input, { push = true } = {}) {
   let html;
   try { html = await fetchHtml(url); }
   catch (e) {
-    status("Seite konnte nicht geladen werden (" + e.message + "). Unter „Einstellungen“ anderen Dienst wählen.", "err");
-    return false;
+    // Ohne „www.“ eingegeben? Dann einmal mit „www.“ probieren (gleicher Dienst).
+    const u = new URL(url);
+    if (!u.hostname.startsWith("www.") && u.hostname.split(".").length === 2) {
+      u.hostname = "www." + u.hostname;
+      try { html = await fetchHtml(u.href); url = u.href; $("url").value = url; } catch {}
+    }
+    if (html === undefined) {
+      const svc = $("proxy").selectedOptions[0].textContent;
+      status("Seite konnte nicht geladen werden (" + svc + ": " + e.message + "). Unten unter „Einstellungen“ einen anderen Dienst wählen und erneut „Laden“ drücken.", "err");
+      document.querySelector("details").open = true;
+      return false;
+    }
   }
   if (push && currentUrl && currentUrl !== url) history_.push(currentUrl);
   currentUrl = url;
