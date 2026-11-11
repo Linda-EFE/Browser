@@ -14,8 +14,11 @@ Branch `main`, Ordner `/ (root)` wählen und speichern. Nach ca. 1 Minute ist de
 
 Hinweise zur Web-Version:
 - Browser verbieten Webseiten, fremde Seiten direkt auszulesen. Die Seite wird deshalb über einen
-  öffentlichen Weiterleitungsdienst (allorigins.win, corsproxy.io oder codetabs.com) geladen.
-  Der Dienst sieht die abgerufene Adresse – keine Seiten mit Login oder privaten Daten verwenden.
+  öffentlichen Weiterleitungsdienst geladen – immer nur über den einen unter *Einstellungen* gewählten
+  (Standard: allorigins.win; alternativ corsproxy.io oder codetabs.com). Dieser Dienst sieht die abgerufene
+  Adresse und deine IP-Adresse (bei abgeschickten Suchformularen auch den Suchbegriff) – keine Seiten mit
+  Login oder privaten Daten verwenden. Selektoren, kopierter Text und Abläufe bleiben im Browser.
+- Die App lädt keine externen Schriften oder Skripte (keine Google Fonts).
 - Skripte der geladenen Seite werden nicht ausgeführt. Seiten, die ihren Inhalt erst per JavaScript
   nachladen, erscheinen evtl. leer – dafür die Desktop-Version nutzen.
 - Abläufe werden im Browser gespeichert und lassen sich als JSON speichern/öffnen

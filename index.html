@@ -4,17 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Browser-App</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400&display=swap">
 <style>
 /* Layout: Adressleiste oben, links die Webseite, rechts die Steuerung (auf dem Handy untereinander). */
 :root {
   --bg: #f3f4f7; --surface: #ffffff; --fg: #1d2230; --muted: #626a7e;
   --line: #d9dce5; --accent: #2f5bd3; --accent-fg: #ffffff;
   --pick: #e8590c; --ok: #2b8a3e; --err: #c92a2a;
-  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-head: "Space Grotesk", "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-head: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #14171f; --surface: #1c2030; --fg: #e6e8ef; --muted: #9aa1b5;
@@ -149,15 +147,15 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <section style="margin-top:8px">
         <label class="hint" for="proxy">Abruf über</label>
         <select id="proxy">
-          <option value="auto">Automatisch (mehrere Dienste probieren)</option>
           <option value="allorigins">allorigins.win</option>
           <option value="corsproxy">corsproxy.io</option>
           <option value="codetabs">codetabs.com</option>
           <option value="direct">Direkt (nur Seiten, die es erlauben)</option>
         </select>
         <p class="hint">Browser verbieten Webseiten, fremde Seiten direkt auszulesen. Deshalb wird die Seite über einen
-          öffentlichen Weiterleitungsdienst geladen. Der Dienst sieht, welche Adresse du abrufst – keine Seiten mit
-          Login oder privaten Daten verwenden. Skripte der Seite werden nicht ausgeführt; Seiten, die ihren Inhalt erst
+          öffentlichen Weiterleitungsdienst geladen. Es wird immer nur der hier gewählte Dienst benutzt. Er sieht, welche
+          Adresse du abrufst (bei abgeschickten Suchformularen auch den Suchbegriff) – keine Seiten mit Login oder
+          privaten Daten verwenden. Klappt das Laden nicht, hier einen anderen Dienst wählen. Skripte der Seite werden nicht ausgeführt; Seiten, die ihren Inhalt erst
           per JavaScript nachladen, erscheinen daher evtl. leer. Für solche Seiten die Desktop-Version
           (<code>browser_app.py</code>) nutzen.</p>
       </section>
@@ -215,23 +213,22 @@ async function deliver(text) {
 
 // ---------- Laden ----------
 async function fetchHtml(url) {
-  const mode = $("proxy").value;
-  const order = mode === "auto" ? ["allorigins", "corsproxy", "codetabs"] : [mode];
-  let lastErr;
-  for (const name of order) {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 20000);
-      const res = await fetch(PROXIES[name](url), { signal: ctrl.signal });
-      clearTimeout(t);
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const text = await res.text();
-      if (!text.trim()) throw new Error("leere Antwort");
-      return text;
-    } catch (e) { lastErr = e; }
-  }
-  throw lastErr || new Error("Abruf fehlgeschlagen");
+  // Nur der gewählte Dienst wird benutzt – kein automatisches Ausweichen auf andere Anbieter.
+  const name = PROXIES[$("proxy").value] ? $("proxy").value : "allorigins";
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(PROXIES[name](url), { signal: ctrl.signal });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    if (!text.trim()) throw new Error("leere Antwort");
+    return text;
+  } catch (e) {
+    throw new Error(e.name === "AbortError" ? "Zeitüberschreitung" : e.message || "Abruf fehlgeschlagen");
+  } finally { clearTimeout(t); }
 }
+$("proxy").onchange = () => { try { localStorage.setItem("ba_proxy", $("proxy").value); } catch {} };
+try { const pv = localStorage.getItem("ba_proxy"); if (pv && PROXIES[pv]) $("proxy").value = pv; } catch {}
 
 function prepareHtml(html, baseUrl) {
   const d = new DOMParser().parseFromString(html, "text/html");
