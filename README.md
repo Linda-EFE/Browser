@@ -1,21 +1,42 @@
 # Browser
 
-Desktop-App (Python + Qt), die eine Webseite anzeigt und gezielt Text daraus kopiert.
+App, die eine Webseite anzeigt und gezielt Text daraus kopiert – als **Web-Version** (`index.html`,
+läuft direkt im Browser) und als **Desktop-Version** (`browser_app.py`, Python + Qt).
 
-## Installation
+## Web-Version
+
+Link: **https://linda-efe.github.io/Browser/**
+
+Optional lässt sich ein Link direkt mitgeben: `https://linda-efe.github.io/Browser/?url=https://example.com`
+
+Einmalig einrichten: Auf GitHub unter *Settings → Pages* bei *Source* „Deploy from a branch“,
+Branch `main`, Ordner `/ (root)` wählen und speichern. Nach ca. 1 Minute ist der Link erreichbar.
+
+Hinweise zur Web-Version:
+- Browser verbieten Webseiten, fremde Seiten direkt auszulesen. Die Seite wird deshalb über einen
+  öffentlichen Weiterleitungsdienst (allorigins.win, corsproxy.io oder codetabs.com) geladen.
+  Der Dienst sieht die abgerufene Adresse – keine Seiten mit Login oder privaten Daten verwenden.
+- Skripte der geladenen Seite werden nicht ausgeführt. Seiten, die ihren Inhalt erst per JavaScript
+  nachladen, erscheinen evtl. leer – dafür die Desktop-Version nutzen.
+- Abläufe werden im Browser gespeichert und lassen sich als JSON speichern/öffnen
+  (gleiches Format wie die Desktop-Version).
+
+## Desktop-Version
+
+### Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Starten
+### Starten
 
 ```bash
 python browser_app.py                      # leer starten
 python browser_app.py https://example.com  # direkt mit Link starten
 ```
 
-## Bedienung
+## Bedienung (beide Versionen)
 
 1. **Link übergeben:** Link oben in die Adresszeile eintragen → *Laden* (oder Enter).
 2. **Webseite ansehen:** Die Seite erscheint im Hauptfenster (◀ ▶ ⟳ zum Navigieren).
