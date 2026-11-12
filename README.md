@@ -13,11 +13,13 @@ Einmalig einrichten: Auf GitHub unter *Settings → Pages* bei *Source* „Deplo
 Branch `main`, Ordner `/ (root)` wählen und speichern. Nach ca. 1 Minute ist der Link erreichbar.
 
 Hinweise zur Web-Version:
-- Browser verbieten Webseiten, fremde Seiten direkt auszulesen. Die Seite wird deshalb über einen
-  öffentlichen Weiterleitungsdienst geladen – immer nur über den einen unter *Einstellungen* gewählten
-  (Standard: allorigins.win; alternativ corsproxy.io oder codetabs.com). Dieser Dienst sieht die abgerufene
-  Adresse und deine IP-Adresse (bei abgeschickten Suchformularen auch den Suchbegriff) – keine Seiten mit
-  Login oder privaten Daten verwenden. Selektoren, kopierter Text und Abläufe bleiben im Browser.
+- Jede Seite wird **zuerst direkt** geladen – ohne fremden Dienst. Das klappt bei Seiten, die es
+  erlauben (z.B. `karlsruhe.de`). Eingaben ohne `https://` und `www.` werden automatisch ergänzt.
+- Viele Seiten verbieten das direkte Laden. Dann geht es nur über einen öffentlichen
+  Weiterleitungsdienst, den man unter *Einstellungen* wählen kann (Standard: keiner). Dieser Dienst
+  sieht die abgerufene Adresse und deine IP-Adresse (bei abgeschickten Suchformularen auch den
+  Suchbegriff) – keine Seiten mit Login oder privaten Daten verwenden. Die kostenlosen Dienste sind
+  oft überlastet. Selektoren, kopierter Text und Abläufe bleiben immer im Browser.
 - Die App lädt keine externen Schriften oder Skripte (keine Google Fonts).
 - Skripte der geladenen Seite werden nicht ausgeführt. Seiten, die ihren Inhalt erst per JavaScript
   nachladen, erscheinen evtl. leer – dafür die Desktop-Version nutzen.

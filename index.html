@@ -145,18 +145,19 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
     <details>
       <summary>Einstellungen</summary>
       <section style="margin-top:8px">
-        <label class="hint" for="proxy">Abruf über</label>
+        <label class="hint" for="proxy">Wenn eine Seite nicht direkt geladen werden darf, Abruf über</label>
         <select id="proxy">
+          <option value="none" selected>keinen Dienst (nur direkt)</option>
           <option value="allorigins">allorigins.win</option>
           <option value="corsproxy">corsproxy.io</option>
           <option value="codetabs">codetabs.com</option>
-          <option value="direct">Direkt (nur Seiten, die es erlauben)</option>
         </select>
-        <p class="hint">Browser verbieten Webseiten, fremde Seiten direkt auszulesen. Deshalb wird die Seite über einen
-          öffentlichen Weiterleitungsdienst geladen. Es wird immer nur der hier gewählte Dienst benutzt. Er sieht, welche
+        <p class="hint">Die App lädt jede Seite zuerst direkt – dann ist kein fremder Dienst beteiligt. Das klappt bei
+          Seiten, die es erlauben (z.B. karlsruhe.de). Viele Seiten verbieten das; dann kann die Seite nur über einen
+          öffentlichen Weiterleitungsdienst geladen werden, falls hier einer gewählt ist. Dieser Dienst sieht, welche
           Adresse du abrufst (bei abgeschickten Suchformularen auch den Suchbegriff) – keine Seiten mit Login oder
-          privaten Daten verwenden. Klappt das Laden nicht, hier einen anderen Dienst wählen. Skripte der Seite werden nicht ausgeführt; Seiten, die ihren Inhalt erst
-          per JavaScript nachladen, erscheinen daher evtl. leer. Für solche Seiten die Desktop-Version
+          privaten Daten verwenden. Skripte der Seite werden nicht ausgeführt; Seiten, die ihren Inhalt erst per
+          JavaScript nachladen, erscheinen daher evtl. leer. Für solche Seiten die Desktop-Version
           (<code>browser_app.py</code>) nutzen.</p>
       </section>
     </details>
@@ -212,9 +213,7 @@ async function deliver(text) {
 }
 
 // ---------- Laden ----------
-async function fetchHtml(url) {
-  // Nur der gewählte Dienst wird benutzt – kein automatisches Ausweichen auf andere Anbieter.
-  const name = PROXIES[$("proxy").value] ? $("proxy").value : "allorigins";
+async function fetchVia(name, url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 20000);
   try {
@@ -227,8 +226,28 @@ async function fetchHtml(url) {
     throw new Error(e.name === "AbortError" ? "Zeitüberschreitung" : e.message || "Abruf fehlgeschlagen");
   } finally { clearTimeout(t); }
 }
+// Lädt die Seite: zuerst direkt (ohne fremden Dienst), erst danach – falls gewählt – über EINEN Weiterleitungsdienst.
+// Liefert {html, url} oder wirft einen Fehler mit Beschreibung.
+async function fetchHtml(url) {
+  const candidates = [url];
+  const u = new URL(url);
+  if (!u.hostname.startsWith("www.") && u.hostname.split(".").length === 2) {
+    u.hostname = "www." + u.hostname; candidates.push(u.href);
+  }
+  for (const c of candidates) {
+    try { return { html: await fetchVia("direct", c), url: c }; } catch {}
+  }
+  const name = $("proxy").value;
+  if (!PROXIES[name] || name === "direct") throw new Error("Die Seite erlaubt kein direktes Laden. Unten unter „Einstellungen“ kann ein Weiterleitungsdienst gewählt werden.");
+  let lastErr;
+  for (const c of candidates) {
+    status("Direkt nicht erlaubt – lade über " + $("proxy").selectedOptions[0].textContent + " …");
+    try { return { html: await fetchVia(name, c), url: c }; } catch (e) { lastErr = e; }
+  }
+  throw new Error($("proxy").selectedOptions[0].textContent + " hat nicht geantwortet (" + lastErr.message + "). Unten unter „Einstellungen“ einen anderen Dienst wählen.");
+}
 $("proxy").onchange = () => { try { localStorage.setItem("ba_proxy", $("proxy").value); } catch {} };
-try { const pv = localStorage.getItem("ba_proxy"); if (pv && PROXIES[pv]) $("proxy").value = pv; } catch {}
+try { const pv = localStorage.getItem("ba_proxy"); if (pv && $("proxy").querySelector('option[value="' + pv + '"]')) $("proxy").value = pv; } catch {}
 
 function prepareHtml(html, baseUrl) {
   const d = new DOMParser().parseFromString(html, "text/html");
@@ -254,20 +273,11 @@ async function loadUrlInner(input, { push = true } = {}) {
   status("Lade " + url + " …");
   stopPicker();
   let html;
-  try { html = await fetchHtml(url); }
+  try { ({ html, url } = await fetchHtml(url)); $("url").value = url; }
   catch (e) {
-    // Ohne „www.“ eingegeben? Dann einmal mit „www.“ probieren (gleicher Dienst).
-    const u = new URL(url);
-    if (!u.hostname.startsWith("www.") && u.hostname.split(".").length === 2) {
-      u.hostname = "www." + u.hostname;
-      try { html = await fetchHtml(u.href); url = u.href; $("url").value = url; } catch {}
-    }
-    if (html === undefined) {
-      const svc = $("proxy").selectedOptions[0].textContent;
-      status("Seite konnte nicht geladen werden (" + svc + ": " + e.message + "). Unten unter „Einstellungen“ einen anderen Dienst wählen und erneut „Laden“ drücken.", "err");
-      document.querySelector("details").open = true;
-      return false;
-    }
+    status("Seite konnte nicht geladen werden: " + e.message, "err");
+    document.querySelector("details").open = true;
+    return false;
   }
   if (push && currentUrl && currentUrl !== url) history_.push(currentUrl);
   currentUrl = url;
